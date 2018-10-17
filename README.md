@@ -3,6 +3,8 @@ The nhtsSimple.py script uses data from the National House Travel Survey to cali
 
 ## Inputs
 
+The main source of data for this analysis is the National Household Travel Survey. The data are gitignored so before the script can be run, you must download the NHTS 2017 v1.1 csv files from https://nhts.ornl.gov/
+
 blocks.csv: an dataframe which defines one city block per row and specifies the number of people of each occupation type, the residential capacity and the capacity of the third places. The occupation types are:
 
 | Code 	| Description											|

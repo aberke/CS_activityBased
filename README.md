@@ -3,9 +3,15 @@ The nhtsSimple.py script uses data from the National House Travel Survey to cali
 
 ## Inputs
 
-The main source of data for this analysis is the National Household Travel Survey. The data are gitignored so before the script can be run, you must download the NHTS 2017 v1.1 csv files from https://nhts.ornl.gov/
 
-blocks.csv: an dataframe which defines one city block per row and specifies the number of people of each occupation type, the residential capacity and the capacity of the third places. The occupation types are:
+##### NHTS data
+The main source of data for this analysis is the National Household Travel Survey. 
+
+###### Blocks data
+
+The design team collaborates with the technical team on the design of the city blocks used in the model simulation via a spreadsheet ([link](https://docs.google.com/spreadsheets/d/1aKRPp83EWWdBri6MwjuGcZVSki2xQuxd_OjMAdrrpS4)).
+
+That spreadsheet is downloaded and saved to `blocks.csv`. The data defines one city block per row and specifies the number of people of each occupation type, the residential capacity and the capacity of the third places. The occupation types are:
 
 | Code 	| Description											|
 |-------|-------------------------------------------------------|
@@ -33,3 +39,22 @@ An example tree is shown below.
 
 
 modeChoice.py contains python code for the series of if -else statements corresponding to the calibrated decision tree. This script is created by running the nhtsSimple.py script. 
+
+
+## Running
+
+###### Download the NHTS Data
+
+This data is large and excluded from the repository via an entry in the `.gitignore`.
+
+- Create a folder to hold the data `./nhts/`
+- Download the NHTS 2017 v1.1 csv files from https://nhts.ornl.gov/ and save `./nhts/trippub.csv` and `./nhts/perpub.csv`
+
+
+###### Download the Blocks Data
+
+Download the blocks data from the [spreadsheet](https://docs.google.com/spreadsheets/d/1aKRPp83EWWdBri6MwjuGcZVSki2xQuxd_OjMAdrrpS4) to `blocks.csv`.
+
+###### Recompute
+
+`python nhtsSimple.py`

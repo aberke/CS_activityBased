@@ -10,10 +10,10 @@ import pandas as pd
 import re
 from collections import OrderedDict
 from sklearn import tree
-import graphviz
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.tree import _tree
+
 
 def tree_to_code(tree, feature_names):
     # takes a fitted decision tree and outputs a python function
@@ -103,12 +103,7 @@ patternDict={1:'H',
              9: 'HWOWH'}   
 
 # define the number of people in each occupation type for each block type in the library
-#blocks={'block_1':
-#            {'occupationCat_1':100, 'occupationCat_2':100, 'occupationCat_3':100, 'occupationCat_4':100, 'occupationCat_5':100},
-#        'block_2':
-#            {'occupationCat_1':200, 'occupationCat_2':300, 'occupationCat_3':400, 'occupationCat_4':500, 'occupationCat_5':100}}
-#        }  
-blocks=pd.read_csv('blockData.csv')
+blocks=pd.read_csv('blocks.csv')
 occTypes=[c for c in blocks.columns if 'occupationCat' in c]
 # create capacity constrained choice sets for resiential and third place locations
 resChoiceSet=[int(blocks.iloc[i]['Block']) for i in range(len(blocks)) for r in range(int(blocks.loc[i]['residential']))]
@@ -120,7 +115,7 @@ maxDepth=3 # the max number of if statements to decide on a mode choice
 # need to download the NHTS 2017 v1.1 csv files from: 
 # https://nhts.ornl.gov/
 trips=pd.read_csv('./nhts/trippub.csv')
-persons=pd.read_csv('nhts/perpub.csv')
+persons=pd.read_csv('./nhts/perpub.csv')
 
 #NHTS variables:
 #TRPMILES: shortest path distance from GMaps
@@ -241,8 +236,6 @@ dot_data = tree.export_graphviz(clf_mode, out_file='results/treeModeSimple.dot',
                          special_characters=True) 
 with open('results/treeModeSimple.dot') as f:
     dot_graph = f.read()
-g=graphviz.Source(dot_graph)
-g.render(filename='results/treeModeSimple')
 
 tree_to_code(clf_mode, dtFeats)
  

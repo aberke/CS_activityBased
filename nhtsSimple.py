@@ -29,16 +29,17 @@ def tree_to_code(tree, feature_names):
             if tree_.feature[node] != _tree.TREE_UNDEFINED:
                 name = feature_name[node]
                 threshold = tree_.threshold[node]
-#                print ("{}if {} <= {}:".format(indent, name, threshold))
                 the_file.write("{}if {} <= {}:\n".format(indent, name, threshold))
                 recurse(tree_.children_left[node], depth + 1)
                 the_file.write("{}else:  # if {} > {}\n".format(indent, name, threshold))
-#                print ("{}else:  # if {} > {}".format(indent, name, threshold))
                 recurse(tree_.children_right[node], depth + 1)
             else:
-                n_samples=sum([int(v) for v in tree_.value[node][0]])
-                the_file.write("{}return {}\n".format(indent, [round(v/n_samples,2) for v in tree_.value[node][0]]))
-#                print ("{}return {}".format(indent, [int(v) for v in tree_.value[node][0]]))
+                # Write the return statement as a list of weighted mobility choices.
+                choice_values = tree_.value[node][0]
+                n_samples = sum([int(v) for v in choice_values])
+                transformed_choice_values = [v/n_samples for v in choice_values]
+                formatted_choice_values = ["{:.2f}".format(v) for v in transformed_choice_values]
+                the_file.write("{}return [{}]\n".format(indent, ", ".join(formatted_choice_values)))
         recurse(0, 1)
     
 def findPattern(sched, regPatterns):

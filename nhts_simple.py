@@ -50,7 +50,7 @@ def findPattern(sched, regPatterns):
         #checking the most complex first
         if r.match(sched):
             return regPatterns[r]
-    if sched=='h':
+    if sched=='R':
         return 1
     else:
         return 0
@@ -59,13 +59,13 @@ cbsa='35620' # New York-ish
 
 whyDict={
         # map NHTS activities to a simpler list of activities
-        1:'h',2:'h',
-        3:'w',4:'w',5:'w',
-        6:'o',
-        7:'t',
-        8:'w',
-        9:'o',10: 'o',11: 'o',12: 'o',13: 'o',14: 'o',
-        15: 'o',16: 'o',17: 'o',18: 'o',19: 'o',97: 'o'}
+        1:'R',2:'R',
+        3:'O',4:'O',5:'O',
+        6:'A',
+        7:'T',
+        8:'O',
+        9:'A',10: 'A',11: 'A',12: 'A',13: 'A',14: 'A',
+        15: 'A',16: 'A',17: 'A',18: 'A',19: 'A',97: 'A'}
 
 modeDict={
         # map NHTS modes to a simpler list of modes
@@ -84,26 +84,26 @@ modeDict={
 regPatterns=OrderedDict()
 #define the motifs and create regular expressions to represent them
 # Based on http://projects.transportfoundry.com/trbidea/schedules.html
-regPatterns[re.compile('(h-)+h')]=1 #'home'
-regPatterns[re.compile('(h-)+w-h')]=2#'simpleWork'
-regPatterns[re.compile('(h-)+w-(w-)+h')]=3 #'multiPartWork'
-regPatterns[re.compile('(h-)+o-h')]= 4#'simpleNonWork'
-regPatterns[re.compile('(h-)+o-(o-)+h')]=5 #'multiNonWork'
-regPatterns[re.compile('(h-)+o-([wo]-)*w-h')]=6 #'compToWork'
-regPatterns[re.compile('(h-)+w-([wo]-)*o-h')]=7 #'compFromWork'
-regPatterns[re.compile('(h-)+o-([wo]-)*w-([wo]-)*o-h')]=8 #'compToFromWork'
-regPatterns[re.compile('(h-)+w-([wo]-)*o-([wo]-)*w-h')]=9 #'compAtWork'  
+regPatterns[re.compile('(R-)+R')] = 1  # 'home'
+regPatterns[re.compile('(R-)+O-R')] = 2  # 'simpleWork'
+regPatterns[re.compile('(R-)+O-(O-)+R')] = 3  #'multiPartWork'
+regPatterns[re.compile('(R-)+A-R')] = 4  #'simpleNonWork'
+regPatterns[re.compile('(R-)+A-(A-)+R')] = 5  #'multiNonWork'
+regPatterns[re.compile('(R-)+A-([OA]-)*O-R')] = 6  #'compToWork'
+regPatterns[re.compile('(R-)+O-([OA]-)*A-R')] = 7  #'compFromWork'
+regPatterns[re.compile('(R-)+A-([OA]-)*O-([OA]-)*A-R')] = 8  #'compToFromWork'
+regPatterns[re.compile('(R-)+O-([OA]-)*A-([OA]-)*O-R')] = 9  #'compAtWork'
 
 # simplest version of each pattern
-patternDict={1:'H',
-             2: 'HWH',
-             3: 'HWWH',
-             4: 'HOH',
-             5: 'HOOH',
-             6: 'HOWH',
-             7: 'HWOH',
-             8: 'HOWOH',
-             9: 'HWOWH'}   
+patternDict={1:'R',
+             2: 'ROR',
+             3: 'ROOR',
+             4: 'RAR',
+             5: 'RAAR',
+             6: 'RAOR',
+             7: 'ROAR',
+             8: 'RAOAR',
+             9: 'ROAOR'}   
 
 # define the number of people in each occupation type for each block type in the library
 blocks=pd.read_csv('blocks.csv')
@@ -170,10 +170,10 @@ for id in set(trips_nnn_nTrans['uniquePersonId']):
     mappedSched.extend(trips_nnn_nTrans.loc[trips_nnn_nTrans['uniquePersonId']==id]['whyToMapped'].tolist())
 #    schedule=list(filter(lambda a: a != 7, schedule)) # remove changes in transportation
 #    assume each day starts at home
-    if not mappedSched[0]=='h':
-        mappedSched.insert(0, 'h')
-    if not mappedSched[-1]=='h':
-         mappedSched.extend(['h'])
+    if not mappedSched[0]=='R':
+        mappedSched.insert(0, 'R')
+    if not mappedSched[-1]=='R':
+         mappedSched.extend(['R'])
     strSched='-'.join(mappedSched)
     schedPattern=findPattern(strSched, regPatterns)
     daySched[id]=schedPattern
@@ -204,7 +204,7 @@ for b in range(len(blocks)):
             simPop=simPop.append(sample)
 simPop['home_block']=np.random.choice(resChoiceSet,len(simPop), replace=False)
 simPop['third_places_block']=float('nan')
-goesThirdPlaces=simPop.apply(lambda row: bool(sum([row['motif_'+m] for m in allMotifs if 'O' in m])), axis=1).tolist()# identify people who need a 3rd place
+goesThirdPlaces=simPop.apply(lambda row: bool(sum([row['motif_'+m] for m in allMotifs if 'A' in m])), axis=1).tolist()# identify people who need a 3rd place
 simPop.at[goesThirdPlaces, 'third_places_block']=np.random.choice(thirdPlaceChoiceSet,sum(goesThirdPlaces), replace=False)
 simPop=simPop.reset_index(drop=True)        
 simPop.to_csv('results/simPop.csv')
@@ -233,12 +233,4 @@ plt.figure(figsize=(18, 16))
 plt.bar(range(len(clf_mode.feature_importances_)), clf_mode.feature_importances_)
 plt.xticks(range(len(clf_mode.feature_importances_)), dtFeats, rotation=45)
 
-dot_data = tree.export_graphviz(clf_mode, out_file='results/treeModeSimple.dot',feature_names=dtFeats,  
-                         class_names=['drive', 'cycle', 'walk', 'PT'],  
-                         filled=True, rounded=True,  
-                         special_characters=True) 
-with open('results/treeModeSimple.dot') as f:
-    dot_graph = f.read()
-
 tree_to_code(clf_mode, dtFeats)
- 

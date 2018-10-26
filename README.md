@@ -1,5 +1,5 @@
 # Activity scheduler and mode choice model
-The nhtsSimple.py script uses data from the National House Travel Survey to calibrate a simple activity-based mobility model. 
+The nhts_simple.py script uses data from the National House Travel Survey to calibrate a simple activity-based mobility model. 
 
 ## Inputs
 
@@ -38,7 +38,7 @@ An example tree is shown below.
 ![viz](./example_tree.png)
 
 
-modeChoice.py contains python code for the series of if -else statements corresponding to the calibrated decision tree. This script is created by running the nhtsSimple.py script. 
+mode_choice.py contains python code for the series of if -else statements corresponding to the calibrated decision tree. This script is created by running the nhts_simple.py script. 
 
 
 ## Running
@@ -57,4 +57,4 @@ Download the blocks data from the [spreadsheet](https://docs.google.com/spreadsh
 
 ###### Recompute
 
-`python nhtsSimple.py`
+`python nhts_simple.py`

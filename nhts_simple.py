@@ -19,7 +19,7 @@ from sklearn.tree import _tree
 
 def tree_to_code(tree, feature_names):
     # takes a fitted decision tree and outputs a python function
-    with open('results/modeChoice.py', 'w') as the_file: 
+    with open('results/mode_choice.py', 'w') as the_file: 
         the_file.write('def predictModeProbs():\n')
         tree_ = tree.tree_
         feature_name = [

@@ -6,13 +6,15 @@ Created on Tue Sep 25 11:34:59 2018
 @author: doorleyr
 """
 
-import pandas as pd
-import re
 from collections import OrderedDict
-from sklearn import tree
+import re
+
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn import tree
 from sklearn.tree import _tree
+
 
 
 def tree_to_code(tree, feature_names):

@@ -1,4 +1,4 @@
-def predictModeProbs():
+def predict_mode_probs():
     if trip_leg_miles <= 0.6800000071525574:
         if trip_leg_miles <= 0.2854999899864197:
             if trip_leg_miles <= 0.04349999874830246:

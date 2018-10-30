@@ -296,9 +296,6 @@ def build_simulated_population(blocks, persons, motifs_set):
                 sample['office_block'] = block_id
                 simulated_pop = simulated_pop.append(sample)
 
-    print('residential_choice_set', residential_choice_set)
-    print('amenity_choice_set', amenity_choice_set)
-
     # Residential and amenity are randomly sampled from choice sets.
     # Currently: Because the total amenity and total residential and total work
     # capacities are not equivalent, sampling is done with replacement.

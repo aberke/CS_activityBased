@@ -16,24 +16,33 @@ from sklearn import tree
 from sklearn.tree import _tree
 
 
-# Set the data input filepath locations.
-BLOCKS_DATA_CSV = 'blocks.csv'
+# Input data:
 # Need to download the NHTS 2017 v1.1 csv files from:
 # https://nhts.ornl.gov/
-NHTS_TRIPS_DATA_CSV = './nhts/trippub.csv'
-NHTS_PERSONS_DATA_CSV = './nhts/perpub.csv'
+NHTS_TRIPS_DATA_FILEPATH = './nhts/trippub.csv'
+NHTS_PERSONS_DATA_FILEPATH = './nhts/perpub.csv'
+# Only use NHTS data from target population subset.
+CBSA = '35620'  # New York-ish
 
+# The design team creates the blocks data,
+# with one block per row.
+BLOCKS_DATA_FILEPATH = 'blocks.csv'
+# How much total capacity to allocate per block.
+LOW_DENSITY_BLOCK_SIZE = 40
+HIGH_DENSITY_BLOCK_SIZE = 200
+# Key in blocks data to get density type.
+DENSITY_TYPE_KEY = 'type'
+
+
+# Output data:
 # Set the output filepath locations.
 # The output CSV contains the simulated population
-SIMULATED_POPULATION_OUTPUT_CSV = 'results/simPop.csv'
+SIMULATED_POPULATION_OUTPUT_FILEPATH = 'results/simPop.csv'
 MODE_CHOICE_PREDICTOR_FILEPATH = 'results/mode_choice.py'
 
 # Set maximum decision tree depth.
 # This will be the number of if statements to decide on a mode choice.
 DT_MAX_DEPTH = 3
-
-# Only use NHTS data from target population subset.
-CBSA = '35620'  # New York-ish
 
 
 def tree_to_code(tree, feature_names):
@@ -84,8 +93,8 @@ def tree_to_code(tree, feature_names):
 #OCCAT: Job category
 
 # Read in the NHTS data and prune it.
-trips = pd.read_csv(NHTS_TRIPS_DATA_CSV)
-persons = pd.read_csv(NHTS_PERSONS_DATA_CSV)
+trips = pd.read_csv(NHTS_TRIPS_DATA_FILEPATH)
+persons = pd.read_csv(NHTS_PERSONS_DATA_FILEPATH)
 
 # Take a subset of the total trips data for the New York, New Jersey and
 # Newark urban areas (nnn)
@@ -215,6 +224,39 @@ persons_simple = persons_nnn[['HHFAMINC', 'LIF_CYC',  'OCCAT', 'R_AGE_IMP']]
 persons_simple = persons_simple.rename(columns={'HHFAMINC': 'hh_income', 'LIF_CYC': 'hh_lifeCycle',  'OCCAT': 'occupation_type', 'R_AGE_IMP': 'age'})
 persons_simple = pd.concat([persons_simple, pd.get_dummies(persons_nnn[MOTIF_KEY], prefix=MOTIF_KEY)],  axis=1)
 
+occupation_types_dict = {
+    1: "Sales or service",
+    2: "Clerical or administrative",
+    3: "Manufacturing, construction, maintenance, or farming",
+    4: "Professional, managerial, or technical",
+    5: "Student"
+}
+
+
+def get_block_capacities(blocks_data, block_index):
+    """Returns capacity for block uses (residential, office, amenities)
+        as tuple of integers: (R, O, A)
+    """
+    # Get the total capacity for the block.
+    block_density_type = blocks.iloc[block_index][DENSITY_TYPE_KEY]
+    capacity_total_size = LOW_DENSITY_BLOCK_SIZE if block_density_type == 'Low' else HIGH_DENSITY_BLOCK_SIZE
+    # Get the proportional capacity for each use in the block, as input in
+    # the spreadsheet by the design team.
+    residential_n = blocks.iloc[block_index]['R']
+    office_n = blocks.iloc[block_index]['O']
+    amenities_n = blocks.iloc[block_index]['A']
+    total_use_n = office_n + residential_n + amenities_n
+    office_proportion = float(office_n)/total_use_n
+    residential_proportion = float(residential_n)/total_use_n
+    amenities_proportion = float(amenities_n)/total_use_n
+    # Combine the block use proportions with block capacity total to get
+    # the capacities for each use in the block.
+    residential_capacity = int(capacity_total_size*residential_proportion)
+    office_capacity = int(capacity_total_size*office_proportion)
+    amenities_capacity = int(capacity_total_size*amenities_proportion)
+    return (residential_capacity, office_capacity, amenities_capacity)
+
+
 
 def build_simulated_population(blocks, persons, motifs_set):
     """ Builds the simulated population based on blocks characteristics.
@@ -222,18 +264,14 @@ def build_simulated_population(blocks, persons, motifs_set):
     that is assigned a block of residence, block of work, and mobility motif.
 
     Args:
-        blocks -- dataframe where each row is data about a simulated city block.
+        blocks -- dataframe where each row is data for a simulated city block.
         persons -- dataframe where each row is a person from NHTS data
 
     Returns (dataframe) simulated population.
     """
-
-    # Make list of occupation type names.
-    occupation_types = [c for c in blocks.columns if 'occupationCat' in c]
-    # Create capacity constrained choice set for resiential and third place locations
-    residential_choice_set = [int(blocks.iloc[i]['Block']) for i in range(len(blocks)) for r in range(int(blocks.loc[i]['residential']))]
-    amenity_choice_set = [int(blocks.iloc[i]['Block']) for i in range(len(blocks)) for r in range(int(blocks.loc[i]['third_places']))]
-
+    # Create capacity constrained choice sets for resiential and third places
+    residential_choice_set = []
+    amenity_choice_set = []
     # Produce simulated population as persons sampled from the persons data
     # based on their occupation type.
     simulated_pop = pd.DataFrame()
@@ -241,27 +279,45 @@ def build_simulated_population(blocks, persons, motifs_set):
     # Sample from the persons data enough people of given occupation type to work
     # in that block
     for b in range(len(blocks)):
-        for occupation_type in occupation_types:
-            occat = int(occupation_type.split('_')[1])
-            N = blocks.iloc[b][occupation_type]
+        block_id = int(blocks.iloc[b]['id'])
+        (residential_capacity, office_capacity, amenities_capacity) = get_block_capacities(blocks, b)
+        # Add block id to the capacity constrained residential and amenity choice sets.
+        residential_choice_set += [block_id for r in range(residential_capacity)]
+        amenity_choice_set += [block_id for a in range(amenities_capacity)]
+        # Add to simulated population by sampling persons data based on occupation
+        # type and assigning those persons to a work block.
+        for occ_type in occupation_types_dict.keys():
+            # v0: occupation type is randomly distributed
+            N = int(float(office_capacity)/len(occupation_types_dict))
+            # Later/TODO: update to use occupation type input in blocks data.
+            # N = blocks.iloc[b][occupation_type]
             if N > 0:
-                sample = persons.loc[persons['occupation_type']==occat].sample(n=N, replace=True)
-                sample['work_block'] = blocks.iloc[b]['Block']
+                sample = persons.loc[persons['occupation_type']==occ_type].sample(n=N, replace=True)
+                sample['office_block'] = block_id
                 simulated_pop = simulated_pop.append(sample)
-    simulated_pop['home_block'] = np.random.choice(residential_choice_set, len(simulated_pop), replace=False)
+
+    print('residential_choice_set', residential_choice_set)
+    print('amenity_choice_set', amenity_choice_set)
+
+    # Residential and amenity are randomly sampled from choice sets.
+    # Currently: Because the total amenity and total residential and total work
+    # capacities are not equivalent, sampling is done with replacement.
+    # If the input data is modified to have these numbers equivalent, then
+    # sampling without replacement should be used.
+    simulated_pop['residential_block'] = np.random.choice(residential_choice_set, len(simulated_pop))
     # Randomly assign 'third places' that simulated population agents go to.
     # This only applies to agents with mobility motifs that indicate they go to amenities.
-    simulated_pop['third_places_block'] = float('nan')  # Default is that agent has no third place.
+    simulated_pop['amenity_block'] = float('nan')  # Default is that agent has no third place.
     # Identify people who need a 3rd place
     goes_to_amenity = simulated_pop.apply(lambda row: bool(sum([row['motif_'+m] for m in motifs_set if 'A' in m])), axis=1).tolist()
-    simulated_pop.at[goes_to_amenity, 'third_places_block'] = np.random.choice(amenity_choice_set, sum(goes_to_amenity), replace=False)
+    simulated_pop.at[goes_to_amenity, 'amenity_block'] = np.random.choice(amenity_choice_set, sum(goes_to_amenity))
     simulated_pop = simulated_pop.reset_index(drop=True)
     return simulated_pop
 
 
-blocks = pd.read_csv(BLOCKS_DATA_CSV)
+blocks = pd.read_csv(BLOCKS_DATA_FILEPATH)
 simulated_pop = build_simulated_population(blocks, persons_simple, motifs_set)
-simulated_pop.to_csv(SIMULATED_POPULATION_OUTPUT_CSV)
+simulated_pop.to_csv(SIMULATED_POPULATION_OUTPUT_FILEPATH)
 
 
 # ********************************************************************

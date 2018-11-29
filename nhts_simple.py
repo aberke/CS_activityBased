@@ -28,7 +28,7 @@ CBSA = '35620'  # New York-ish
 # with one block per row.
 BLOCKS_DATA_FILEPATH = 'blocks.csv'
 # How much total capacity to allocate per block.
-LOW_DENSITY_BLOCK_SIZE = 40
+LOW_DENSITY_BLOCK_SIZE = 10
 HIGH_DENSITY_BLOCK_SIZE = 200
 # Key in blocks data to get density type.
 DENSITY_TYPE_KEY = 'type'

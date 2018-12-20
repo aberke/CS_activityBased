@@ -6,7 +6,14 @@ The nhts_simple.py script uses data from the National Household Travel Survey to
 
 
 ##### NHTS data
-The main source of data for this analysis is the National Household Travel Survey. 
+The main source of data for this analysis is the National Household Travel Survey (NHTS).
+
+
+###### CBSA
+
+The U.S. geographic area from which the subset of NHTS data is used.
+`CBSA` is defined as a constant within `nhts_simple.py`.  Change it to compute the model for other areas.
+
 
 ###### Blocks data
 
